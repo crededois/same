@@ -378,8 +378,8 @@
                             const pcdInfo = getVal(colunas, 'PCD', 5);
                             const autoInfo = getVal(colunas, 'AUTODECLARAÇÃO', 6);
                             const idadeInfo = getVal(colunas, 'IDADE', 7);
-                            const edicInfo = getVal(colunas, 'EDIÇÃO', 8);
-                            const discInfo = getVal(colunas, 'DISCIPLINA', 9);
+                            const edicInfo = getVal(colunas, 'EDIÇÃO', 8).trim().toUpperCase();
+                            const discInfo = getVal(colunas, 'DISCIPLINA', 9).trim().toUpperCase();
                             const muniInfo = getVal(colunas, 'MUNICÍPIO', 10);
                             const modaInfo = getVal(colunas, 'MODALIDADE', 11);
                             const etapInfo = getVal(colunas, 'ETAPA', 12);
