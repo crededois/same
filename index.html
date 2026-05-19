@@ -337,57 +337,61 @@
                             const line = lines[i].trim();
                             if (!line) continue;
 
-                            let respostasRaw = "";
-                            let restoLinha = "";
                             let colunas = line.split('\t');
+                            let respostasRaw = "";
+                            let restoLinha = line; // <- AQUI ESTÁ A CORREÇÃO! Devolvemos a variável que o sistema precisava.
 
-                            if (colunas.length >= 45) {
-                                let last45 = colunas.slice(-45);
-                                let isAnswers = last45.every(c => c.trim().length <= 1);
-                                if (isAnswers) {
-                                    respostasRaw = last45.map(c => { let v = c.trim().toUpperCase(); return /^[A-E]$/.test(v) ? v : '*'; }).join('');
-                                    restoLinha = colunas.slice(0, -45).join('\t');
-                                }
-                            }
-                            
-                            if (!respostasRaw) {
-                                const matchEnd = line.match(/([A-E\*\-]{45})$/i);
-                                if (matchEnd) {
-                                    respostasRaw = matchEnd[1].toUpperCase().replace(/-/g, '*');
-                                    restoLinha = line.substring(0, line.length - 45).trim();
-                                } else {
-                                    const matchFallback = line.replace(/[\t\s]+/g, '').match(/([A-E\*\-]{45})$/i);
-                                    if (matchFallback) {
-                                        respostasRaw = matchFallback[1].toUpperCase().replace(/-/g, '*');
-                                        restoLinha = line; 
+                            // 1. Tenta identificar se as respostas vieram todas "grudadas" em uma coluna só
+                            const matchFallback = line.replace(/[\t\s]+/g, '').match(/([A-E\*\-]{45})$/i);
+                            if (matchFallback) {
+                                respostasRaw = matchFallback[1].toUpperCase().replace(/-/g, '*');
+                            } else {
+                                // 2. Lógica Inteligente: Busca questão por questão pelos cabeçalhos ou posições fixas
+                                let respostasGeradas = "";
+                                for (let q = 1; q <= 45; q++) {
+                                    let qKey = `Q${String(q).padStart(2, '0')}`;
+                                    let fallbackIndex = 16 + (q - 1); 
+                                    
+                                    // Tenta puxar a resposta da coluna correta
+                                    let respOriginal = getVal(colunas, qKey, fallbackIndex);
+                                    
+                                    // Sanitizador: limpa aspas, espaços e converte para maiúsculo
+                                    let v = String(respOriginal || '*').replace(/["']/g, '').replace(/\s+/g, '').toUpperCase();
+                                    
+                                    // Regra de Correção: Se marcou duas, deixou em branco ou faltou coluna no final, vira '*'
+                                    if (v.length !== 1 || !/^[A-E]$/.test(v)) {
+                                        v = '*';
                                     }
+                                    respostasGeradas += v;
                                 }
+                                respostasRaw = respostasGeradas;
                             }
 
+                            // Trava de segurança para ignorar linhas vazias ou quebradas
                             if (!respostasRaw || respostasRaw.length !== 45) {
                                 if (colunas.length >= 10) {
                                     respostasRaw = "*".repeat(45);
-                                    if (!restoLinha) restoLinha = line;
                                 } else {
                                     errorCount++;
                                     continue;
                                 }
                             }
 
-                            const sexoInfo = getVal(colunas, 'SEXO', 4);
-                            const pcdInfo = getVal(colunas, 'PCD', 5);
-                            const autoInfo = getVal(colunas, 'AUTODECLARAÇÃO', 6);
-                            const idadeInfo = getVal(colunas, 'IDADE', 7);
+                            const sexoInfo = getVal(colunas, 'SEXO', 4).trim().toUpperCase();
+                            const pcdInfo = getVal(colunas, 'PCD', 5).trim().toUpperCase();
+                            const autoInfo = getVal(colunas, 'AUTODECLARAÇÃO', 6).trim().toUpperCase();
+                            const idadeInfo = getVal(colunas, 'IDADE', 7).trim().toUpperCase();
                             const edicInfo = getVal(colunas, 'EDIÇÃO', 8).trim().toUpperCase();
                             const discInfo = getVal(colunas, 'DISCIPLINA', 9).trim().toUpperCase();
-                            const muniInfo = getVal(colunas, 'MUNICÍPIO', 10);
-                            const modaInfo = getVal(colunas, 'MODALIDADE', 11);
-                            const etapInfo = getVal(colunas, 'ETAPA', 12);
-                            const turmInfo = getVal(colunas, 'TURMA', 13);
-                            const cursInfo = getVal(colunas, 'CURSO', 14);
-                            const turnInfo = getVal(colunas, 'TURNO', 15);
-                            const avaliadoInfo = getVal(colunas, 'AVALIADO', 16);
-                            const nomeInfo = getVal(colunas, 'ESTUDANTE', 3);
+                            const muniInfo = getVal(colunas, 'MUNICÍPIO', 10).trim().toUpperCase();
+                            const modaInfo = getVal(colunas, 'MODALIDADE', 11).trim().toUpperCase();
+                            const etapInfo = getVal(colunas, 'ETAPA', 12).trim().toUpperCase();
+                            const turmInfo = getVal(colunas, 'TURMA', 13).trim().toUpperCase();
+                            const cursInfo = getVal(colunas, 'CURSO', 14).trim().toUpperCase();
+                            const turnInfo = getVal(colunas, 'TURNO', 15).trim().toUpperCase();
+                            const avaliadoInfo = getVal(colunas, 'AVALIADO', 16).trim().toUpperCase();
+                            const nomeInfo = getVal(colunas, 'ESTUDANTE', 3).trim().toUpperCase();
+                            const matriculaInfo = getVal(colunas, 'MATRÍCULA', 2).trim().toUpperCase();
 
                             const restoUpper = restoLinha.toUpperCase();
                             let edicaoInfo = edicInfo !== '-' ? edicInfo.toUpperCase() : (restoUpper.includes('PRIMEIRA') ? 'PRIMEIRA' : (restoUpper.includes('SEGUNDA') ? 'SEGUNDA' : 'TERCEIRA'));
@@ -415,6 +419,7 @@
                             const aluno = {
                                 rawInfo: colunas,
                                 nome: nomeInfo,
+                                matricula: matriculaInfo,
                                 edicao: edicaoInfo,
                                 disciplina: disciplinaInfo,
                                 sexo: sexoInfo,
@@ -1121,12 +1126,14 @@
                 const mapaEstudantes = {};
 
                 baseDataEdicoes.forEach(registro => {
-                    const chaveNome = (registro.nome || '').trim().toUpperCase();
-                    if (!chaveNome) return;
+                    // CRIA A CHAVE ÚNICA USANDO A MATRÍCULA
+                    const chaveUnica = `${registro.matricula}-${registro.nome}`.trim().toUpperCase();
+                    if (!chaveUnica || chaveUnica === '-') return;
 
-                    if (!mapaEstudantes[chaveNome]) {
-                        mapaEstudantes[chaveNome] = {
+                    if (!mapaEstudantes[chaveUnica]) {
+                        mapaEstudantes[chaveUnica] = {
                             nome: registro.nome,
+                            matricula: registro.matricula, // Guardando a matrícula
                             sexo: registro.sexo,
                             idade: registro.idade,
                             etapa: registro.etapa,
@@ -1139,9 +1146,9 @@
                         };
                     }
 
-                    mapaEstudantes[chaveNome].historicoEdicoes.push(registro);
-                    mapaEstudantes[chaveNome].totalAcertosAcumulados += (registro.acertosTotal || 0);
-                    mapaEstudantes[chaveNome].totalQuestoesAcumuladas += 45; 
+                    mapaEstudantes[chaveUnica].historicoEdicoes.push(registro);
+                    mapaEstudantes[chaveUnica].totalAcertosAcumulados += (registro.acertosTotal || 0);
+                    mapaEstudantes[chaveUnica].totalQuestoesAcumuladas += 45; 
                 });
 
                 const listaConsolidada = Object.values(mapaEstudantes).map(est => {
@@ -1362,13 +1369,14 @@
                 // 2. Cria mapeamento completo longitudinal de todos os estudantes únicos (para comparação)
                 const mapaLongitudinal = {};
                 baseDataEdicoes.forEach(reg => {
-                    const nomeChave = (reg.nome || '').trim().toUpperCase();
-                    if (!nomeChave) return;
-                    if (!mapaLongitudinal[nomeChave]) {
-                        mapaLongitudinal[nomeChave] = { nome: reg.nome, edicoes: {} };
+                    const chaveUnica = `${reg.matricula}-${reg.nome}`.trim().toUpperCase();
+                    if (!chaveUnica || chaveUnica === '-') return;
+                    
+                    if (!mapaLongitudinal[chaveUnica]) {
+                        mapaLongitudinal[chaveUnica] = { nome: reg.nome, matricula: reg.matricula, chave: chaveUnica, edicoes: {} };
                     }
                     const proj = projetarPerfilEstudante(disciplinaAtiva, reg.acertosTotal);
-                    mapaLongitudinal[nomeChave].edicoes[reg.edicao] = {
+                    mapaLongitudinal[chaveUnica].edicoes[reg.edicao] = {
                         acertos: reg.acertosTotal,
                         percentual: reg.percentual,
                         padrao: proj.padrao,
@@ -1403,6 +1411,43 @@
                 return { filtrados: dadosFiltrados, todosEstudantesLista };
             }, [baseDataEdicoes, sliderCoerencia_AbaSpaece, buscaEstudante_AbaSpaece, ordenacao_AbaSpaece, stats.edicaoAtualStr, disciplinaAtiva]);
 
+            // MOTOR DE RESUMO E MÉDIA GERAL (DASHBOARD SPAECE)
+            const resumoSpaece = useMemo(() => {
+                if (!dadosSpaeceProjecao_AbaSpaece || !dadosSpaeceProjecao_AbaSpaece.filtrados || dadosSpaeceProjecao_AbaSpaece.filtrados.length === 0) return null;
+                
+                const filtrados = dadosSpaeceProjecao_AbaSpaece.filtrados;
+                let counts = { 'Muito Crítico': 0, 'Crítico': 0, 'Intermediário': 0, 'Adequado': 0 };
+                let sumTri = 0;
+
+                // Conta os alunos em cada padrão e soma o TRI
+                filtrados.forEach(f => {
+                    if (counts[f.projPadrao] !== undefined) {
+                        counts[f.projPadrao]++;
+                    }
+                    sumTri += f.projProficiencia;
+                });
+
+                const mediaTri = sumTri / filtrados.length;
+                
+                // Encontra o estudante que tem a nota mais próxima da média para "herdar" o Padrão e a Cor dele
+                let closestStudent = filtrados[0];
+                let minDiff = Infinity;
+                filtrados.forEach(f => {
+                    const diff = Math.abs(f.projProficiencia - mediaTri);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestStudent = f;
+                    }
+                });
+
+                return {
+                    counts,
+                    mediaTri,
+                    corClasse: closestStudent.projCor,
+                    padrao: closestStudent.projPadrao
+                };
+            }, [dadosSpaeceProjecao_AbaSpaece]);
+            
             // NOVO: Cálculo Comparativo entre edições do SAME
             const dadosComparativoEdicoes = useMemo(() => {
                 if (baseDataEdicoes.length === 0 || !stats.edicoesPresentes || stats.edicoesPresentes.length < 2) return [];
@@ -5330,6 +5375,37 @@
                                     </div>
                                 </div>
 
+                                {/* RESUMO DOS PADRÕES E MÉDIA GERAL */}
+                                {resumoSpaece && (
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-fade-in" data-html2canvas-ignore="true">
+                                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-md transition-all">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-red-500"></div>
+                                            <span className="text-3xl font-black text-gray-800 mt-1">{resumoSpaece.counts['Muito Crítico']}</span>
+                                            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider mt-1">Muito Crítico</span>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-md transition-all">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-yellow-400"></div>
+                                            <span className="text-3xl font-black text-gray-800 mt-1">{resumoSpaece.counts['Crítico']}</span>
+                                            <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider mt-1">Crítico</span>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-md transition-all">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-green-400"></div>
+                                            <span className="text-3xl font-black text-gray-800 mt-1">{resumoSpaece.counts['Intermediário']}</span>
+                                            <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1">Intermediário</span>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group hover:shadow-md transition-all">
+                                            <div className="absolute top-0 left-0 w-full h-1.5 bg-green-700"></div>
+                                            <span className="text-3xl font-black text-gray-800 mt-1">{resumoSpaece.counts['Adequado']}</span>
+                                            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider mt-1">Adequado</span>
+                                        </div>
+                                        <div className={`p-4 rounded-xl shadow-md flex flex-col items-center justify-center col-span-2 md:col-span-1 transform transition-transform hover:scale-105 ${resumoSpaece.corClasse}`}>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Média da Turma</span>
+                                            <span className="text-3xl font-black">{resumoSpaece.mediaTri.toFixed(1)}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider mt-1 opacity-90 bg-black/20 px-2 py-0.5 rounded-full">Padrão: {resumoSpaece.padrao}</span>
+                                        </div>
+                                    </div>
+                                )}
+                                
                                 {/* BARRA DE OPERAÇÕES E PESQUISA */}
                                 <div id="container-controles-spaece" className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between" data-html2canvas-ignore="true">
                                     <div className="relative w-full md:max-w-xs">
@@ -5482,10 +5558,11 @@
                                             >
                                                 <option value="">-- Escolha um Estudante da Escola --</option>
                                                 {dadosSpaeceProjecao_AbaSpaece.todosEstudantesLista.map((e, idx) => (
-                                                    <option key={idx} value={e.nome}>{e.nome}</option>
+                                                    <option key={idx} value={e.chave}>{e.matricula} - {e.nome}</option>
                                                 ))}
                                             </select>
                                         </div>
+                                        {/* ... (outras divs de seleção continuam iguais) ... */}
                                         <div>
                                             <label className="block text-[10px] font-black uppercase text-gray-500 mb-1">Edição de Referência (Antiga):</label>
                                             <select className="w-full p-2 border rounded-lg text-xs font-bold bg-white text-gray-700 outline-none" value={edicaoComp1_AbaSpaece} onChange={(e) => setEdicaoComp1_AbaSpaece(e.target.value)}>
@@ -5508,7 +5585,7 @@
                                     {(() => {
                                         if(!estudanteSelecionadoComp_AbaSpaece) return <p className="text-center text-xs font-bold text-gray-400 py-4">Selecione um estudante acima para ativar o comparativo de evolução TRI.</p>;
                                         
-                                        const fichaAluno = dadosSpaeceProjecao_AbaSpaece.todosEstudantesLista.find(e => e.nome === estudanteSelecionadoComp_AbaSpaece);
+                                        const fichaAluno = dadosSpaeceProjecao_AbaSpaece.todosEstudantesLista.find(e => e.chave === estudanteSelecionadoComp_AbaSpaece);
                                         if(!fichaAluno) return null;
 
                                         const dadosEd1 = fichaAluno.edicoes[edicaoComp1_AbaSpaece];
