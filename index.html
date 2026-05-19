@@ -1584,6 +1584,17 @@
                 return filtered.map(item => item.hab);
             }, [analiseHabilidades, hiddenTurmas, filtroAgrupamentoHabTurma, ordemHabTurma]);
 
+            // VARIÁVEL ADICIONADA PARA CORRIGIR A TELA BRANCA NA TABELA DE TURMAS
+            const chunkedHabs = useMemo(() => {
+                if (!sortedHabsTurmaList) return [];
+                const chunks = [];
+                // Quebra as habilidades de 12 em 12 colunas para a tabela não bugar na tela
+                for (let i = 0; i < sortedHabsTurmaList.length; i += 12) {
+                    chunks.push(sortedHabsTurmaList.slice(i, i + 12));
+                }
+                return chunks;
+            }, [sortedHabsTurmaList]);
+            
             // NOVO: Cálculo para Evolução por Turma
             const turmasDisponiveisEvolucao = useMemo(() => {
                 const turmasMap = new Map();
