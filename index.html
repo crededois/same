@@ -4087,24 +4087,24 @@
                                                     <h4 className="text-center font-extrabold text-gray-700 text-sm bg-gray-50 py-2 rounded mb-2">Desempenho Geral na Habilidade - {habSelecionada}</h4>
                                                     <p className="text-xs text-gray-500 font-medium px-4 text-center mb-8">{detalheHab.descricao} ({detalheHab.percGeral.toFixed(1)}%)</p>
 
-                                                    <div className="flex items-end justify-around h-72 border-b-2 border-l-2 border-gray-200 pt-10 px-4 relative w-full mb-8">
+                                                    <div className="flex items-end justify-between h-72 border-b-2 border-l-2 border-gray-200 pt-10 px-1 md:px-4 relative w-full mb-8" style={{ minWidth: `${Math.max(250, (analiseHabilidades.turmasLista.length - hiddenTurmas.length) * 35)}px` }}>
                                                         <div className="absolute top-0 w-full border-t border-gray-100 left-0"></div>
                                                         <div className="absolute top-1/4 w-full border-t border-gray-100 left-0"></div>
                                                         <div className="absolute top-2/4 w-full border-t border-gray-100 left-0"></div>
                                                         <div className="absolute top-3/4 w-full border-t border-gray-100 left-0"></div>
                                                         
                                                         {detalheHab.classesOverall.map((co, i) => {
-                                                            if (hiddenTurmas.includes(co.turma)) return null;
-                                                            const originalIdx = analiseHabilidades.turmasLista.indexOf(co.turma);
-                                                            const color = COLORS_TURMAS[originalIdx % COLORS_TURMAS.length];
-                                                            return (
-                                                                <div key={co.turma} className="flex flex-col items-center flex-1 h-full justify-end group z-10 cursor-crosshair">
-                                                                    <div className="w-16 md:w-24 rounded-t-sm shadow relative transition-all duration-300 hover:opacity-80" style={{height: `${Math.max(co.perc, 1)}%`, backgroundColor: color}} title={`${co.turma}: ${co.perc.toFixed(1)}%`}>
-                                                                        <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-black text-gray-700 whitespace-nowrap">{co.perc.toFixed(1)}%</span>
-                                                                    </div>
-                                                                    <span className="mt-4 text-[10px] md:text-xs font-bold text-gray-600 text-center w-full px-1">{co.turma}</span>
-                                                                </div>
-                                                            )
+                                                                    if (hiddenTurmas.includes(co.turma)) return null;
+                                                                    const originalIdx = analiseHabilidades.turmasLista.indexOf(co.turma);
+                                                                    const color = COLORS_TURMAS[originalIdx % COLORS_TURMAS.length];
+                                                                    return (
+                                                                        <div key={co.turma} className="flex flex-col items-center flex-1 h-full justify-end group z-10 cursor-crosshair px-1">
+                                                                            <div className="w-full max-w-[60px] min-w-[12px] rounded-t-sm shadow relative transition-all duration-300 hover:opacity-80" style={{height: `${Math.max(co.perc, 1)}%`, backgroundColor: color}} title={`${co.turma}: ${co.perc.toFixed(1)}%`}>
+                                                                                <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[9px] md:text-xs font-black text-gray-700 whitespace-nowrap z-50 bg-white/50 px-1 rounded">{co.perc.toFixed(1)}%</span>
+                                                                            </div>
+                                                                            <span className="mt-4 text-[8px] md:text-[10px] font-bold text-gray-600 text-center w-full truncate" title={co.turma}>{co.turma}</span>
+                                                                        </div>
+                                                                    )
                                                         })}
                                                     </div>
                                                     
