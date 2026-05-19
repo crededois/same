@@ -4126,7 +4126,7 @@
                                                     ) : (
                                                         <div className="flex gap-4 overflow-x-auto custom-scrollbar pb-2 h-[340px] w-full">
                                                             {detalheHab.qData.map(q => (
-                                                                <div key={q.label} className="flex flex-col flex-1 min-w-[200px] items-center">
+                                                                <div key={q.label} className="flex flex-col flex-1 min-w-[250px] items-center">
                                                                     <span className="font-bold text-same-teal bg-teal-50 border border-teal-100 px-5 py-2 rounded-full mb-6 text-sm shadow-sm">{q.label}</span>
                                                                     <div className="flex items-end h-64 gap-1 md:gap-2 w-full justify-center border-b-2 border-l-2 border-gray-200 relative pt-8">
                                                                         <div className="absolute top-0 w-full border-t border-gray-100 left-0"></div>
@@ -4135,17 +4135,17 @@
                                                                         <div className="absolute top-3/4 w-full border-t border-gray-100 left-0"></div>
                                                                         
                                                                         {q.classScores.map((cs, i) => {
-                                                                            if (hiddenTurmas.includes(cs.turma)) return null;
-                                                                            const originalIdx = analiseHabilidades.turmasLista.indexOf(cs.turma);
-                                                                            const color = COLORS_TURMAS[originalIdx % COLORS_TURMAS.length];
-                                                                            return (
-                                                                                <div key={cs.turma} className="w-6 md:w-8 rounded-t-sm relative group cursor-pointer z-10 transition-transform hover:-translate-y-1 shadow-sm" style={{height: `${Math.max(cs.perc, 1)}%`, backgroundColor: color}} title={`${cs.turma}: ${cs.perc.toFixed(1)}%\nDescrição: ${q.desc}`}>
-                                                                                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-gray-700 bg-white/90 px-1 py-0.5 rounded shadow-sm border border-gray-100 whitespace-nowrap">
-                                                                                        {cs.perc.toFixed(0)}%
-                                                                                    </span>
-                                                                                </div>
-                                                                            )
-                                                                        })}
+                                                                    if (hiddenTurmas.includes(cs.turma)) return null;
+                                                                    const originalIdx = analiseHabilidades.turmasLista.indexOf(cs.turma);
+                                                                    const color = COLORS_TURMAS[originalIdx % COLORS_TURMAS.length];
+                                                                    return (
+                                                                        <div key={cs.turma} className="flex-1 min-w-[8px] max-w-[32px] mx-[1px] rounded-t-sm relative group cursor-pointer z-10 transition-transform hover:-translate-y-1 shadow-sm" style={{height: `${Math.max(cs.perc, 1)}%`, backgroundColor: color}} title={`${cs.turma}: ${cs.perc.toFixed(1)}%\nDescrição: ${q.desc}`}>
+                                                                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-bold text-gray-700 bg-white/90 px-1 py-0.5 rounded shadow-sm border border-gray-100 whitespace-nowrap z-50">
+                                                                                {cs.perc.toFixed(0)}%
+                                                                            </span>
+                                                                        </div>
+                                                                    )
+                                                                })}
                                                                     </div>
                                                                 </div>
                                                             ))}
