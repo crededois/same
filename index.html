@@ -1119,21 +1119,20 @@
             }, [habHistSel, dadosFiltradosSemEdicao, disciplinaAtiva, escolaSelecionada, dbSettings]);
 
 
-            // CÁLCULO E CONSOLIDAÇÃO HISTÓRICA POR ESTUDANTE
+            // CÁLCULO E CONSOLIDAÇÃO HISTÓRICA POR ESTUDANTE COM FILTRO DE EDIÇÃO E ORDENAÇÃO DINÂMICA
             const dadosAgrupadosEstudantes_AbaEst = useMemo(() => {
                 if (!baseDataEdicoes || baseDataEdicoes.length === 0) return [];
 
                 const mapaEstudantes = {};
 
                 baseDataEdicoes.forEach(registro => {
-                    // CRIA A CHAVE ÚNICA USANDO A MATRÍCULA
                     const chaveUnica = `${registro.matricula}-${registro.nome}`.trim().toUpperCase();
                     if (!chaveUnica || chaveUnica === '-') return;
 
                     if (!mapaEstudantes[chaveUnica]) {
                         mapaEstudantes[chaveUnica] = {
                             nome: registro.nome,
-                            matricula: registro.matricula, // Guardando a matrícula
+                            matricula: registro.matricula,
                             sexo: registro.sexo,
                             idade: registro.idade,
                             etapa: registro.etapa,
@@ -1156,8 +1155,10 @@
                         ? (est.totalAcertosAcumulados / est.totalQuestoesAcumuladas) * 100 
                         : 0;
 
-                    const controleHabilidades = {};
+                    // Localiza dados da edição selecionada no filtro para exibição condicional
+                    const edicaoEspecifica = est.historicoEdicoes.find(ed => ed.edicao === fEdicao);
 
+                    const controleHabilidades = {};
                     est.historicoEdicoes.forEach(ed => {
                         const edicaoStr = ed.edicao;
                         const matrizHabilidades = dbSettings.matrizes[edicaoStr]?.[disciplinaAtiva] || [];
@@ -1168,10 +1169,8 @@
                             if (!controleHabilidades[hab]) {
                                 controleHabilidades[hab] = { habilidade: hab, acertos: 0, total: 0 };
                             }
-
                             const respostaAluno = ed.respostasString?.[idx];
                             const respostaCorreta = gabaritoOficial[idx];
-
                             if (respostaAluno && respostaCorreta && String(respostaAluno).toUpperCase() === String(respostaCorreta).toUpperCase()) {
                                 controleHabilidades[hab].acertos += 1;
                             }
@@ -1185,38 +1184,49 @@
                         descricao: dbSettings.habilidades[disciplinaAtiva]?.[h.habilidade] || 'Sem descrição'
                     }));
 
-                    const top10Acertos = [...listaHabilidades]
-                        .sort((a, b) => b.percentualSucesso - a.percentualSucesso || b.total - a.total)
-                        .slice(0, 10);
-
-                    const top10Erros = [...listaHabilidades]
-                        .sort((a, b) => a.percentualSucesso - b.percentualSucesso || a.total - b.total)
-                        .slice(0, 10);
-
                     return {
                         ...est,
                         mediaPercentual: percentualMedioGlobal,
-                        topHabilidadesAcertos: top10Acertos,
-                        topHabilidadesErros: top10Erros
+                        acertosEspecifico: edicaoEspecifica ? edicaoEspecifica.acertosTotal : null,
+                        percentualEspecifico: edicaoEspecifica ? edicaoEspecifica.percentual : null,
+                        topHabilidadesAcertos: [...listaHabilidades].sort((a, b) => b.percentualSucesso - a.percentualSucesso || b.total - a.total).slice(0, 10),
+                        topHabilidadesErros: [...listaHabilidades].sort((a, b) => a.percentualSucesso - b.percentualSucesso || a.total - b.total).slice(0, 10)
                     };
                 });
 
                 let dadosFiltrados = listaConsolidada;
+
+                // Aplica filtro da edição caso não esteja em 'Todos'
+                if (fEdicao !== 'Todos') {
+                    dadosFiltrados = dadosFiltrados.filter(e => e.historicoEdicoes.some(ed => ed.edicao === fEdicao));
+                }
+
                 if (buscaNomeEstudante_AbaEst.trim() !== '') {
                     const termoBusca = buscaNomeEstudante_AbaEst.toLowerCase();
                     dadosFiltrados = dadosFiltrados.filter(e => (e.nome || '').toLowerCase().includes(termoBusca));
                 }
 
+                // Chaves de ordenação estendidas para cliques nos cabeçalhos
                 if (ordemListaEstudantes_AbaEst === 'alfa') {
                     dadosFiltrados.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+                } else if (ordemListaEstudantes_AbaEst === 'alfa_desc') {
+                    dadosFiltrados.sort((a, b) => (b.nome || '').localeCompare(a.nome || ''));
                 } else if (ordemListaEstudantes_AbaEst === 'desc') {
                     dadosFiltrados.sort((a, b) => b.mediaPercentual - a.mediaPercentual);
                 } else if (ordemListaEstudantes_AbaEst === 'asc') {
                     dadosFiltrados.sort((a, b) => a.mediaPercentual - b.mediaPercentual);
+                } else if (ordemListaEstudantes_AbaEst === 'turma_asc') {
+                    dadosFiltrados.sort((a, b) => (a.turma || '').localeCompare(b.turma || '') || (a.nome || '').localeCompare(b.nome || ''));
+                } else if (ordemListaEstudantes_AbaEst === 'turma_desc') {
+                    dadosFiltrados.sort((a, b) => (b.turma || '').localeCompare(a.turma || '') || (a.nome || '').localeCompare(b.nome || ''));
+                } else if (ordemListaEstudantes_AbaEst === 'especifico_desc') {
+                    dadosFiltrados.sort((a, b) => (b.percentualEspecifico ?? -1) - (a.percentualEspecifico ?? -1));
+                } else if (ordemListaEstudantes_AbaEst === 'especifico_asc') {
+                    dadosFiltrados.sort((a, b) => (a.percentualEspecifico ?? 101) - (b.percentualEspecifico ?? 101));
                 }
 
                 return dadosFiltrados;
-            }, [baseDataEdicoes, buscaNomeEstudante_AbaEst, ordemListaEstudantes_AbaEst, dbSettings, disciplinaAtiva]);
+            }, [baseDataEdicoes, buscaNomeEstudante_AbaEst, ordemListaEstudantes_AbaEst, dbSettings, disciplinaAtiva, fEdicao]);
 
             // PROCESSAMENTO DE MATERIAIS E TAXAS DE ACERTO POR ITEM (EXCLUSIVO DA GUIA MATERIAIS)
             const dadosMateriaisEQuestoes_AbaMat = useMemo(() => {
@@ -5150,9 +5160,13 @@
                                             value={ordemListaEstudantes_AbaEst}
                                             onChange={(e) => setOrdemListaEstudantes_AbaEst(e.target.value)}
                                         >
-                                            <option value="alfa">Ordem Alfabética</option>
+                                            <option value="alfa">Ordem Alfabética (A-Z)</option>
+                                            <option value="alfa_desc">Ordem Alfabética (Z-A)</option>
                                             <option value="desc">Maior Média de Acertos</option>
                                             <option value="asc">Menor Média de Acertos</option>
+                                            <option value="turma_asc">Por Turma (Crescente)</option>
+                                            {fEdicao !== 'Todos' && <option value="especifico_desc">Maior Nota em {fEdicao}</option>}
+                                            {fEdicao !== 'Todos' && <option value="especifico_asc">Menor Nota em {fEdicao}</option>}
                                         </select>
                                     </div>
                                 </div>
@@ -5160,25 +5174,24 @@
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm text-left border-collapse whitespace-nowrap">
-                                            <thead className="bg-same-teal text-white">
+                                            <thead className="bg-same-teal text-white select-none">
                                                 <tr>
                                                     <th className="py-3 px-4 font-bold text-center">Pos.</th>
-                                                    <th className="py-3 px-4 font-bold">Estudante</th>
-                                                    <th className="py-3 px-4 font-bold">Etapa/Turma</th>
+                                                    <th className="py-3 px-4 font-bold cursor-pointer hover:bg-same-tealDark" onClick={() => setOrdemListaEstudantes_AbaEst(ordemListaEstudantes_AbaEst === 'alfa' ? 'alfa_desc' : 'alfa')}>Estudante ↕</th>
+                                                    <th className="py-3 px-4 font-bold cursor-pointer hover:bg-same-tealDark" onClick={() => setOrdemListaEstudantes_AbaEst(ordemListaEstudantes_AbaEst === 'turma_asc' ? 'turma_desc' : 'turma_asc')}>Etapa/Turma ↕</th>
                                                     <th className="py-3 px-4 font-bold text-center">Edições Analisadas</th>
-                                                    <th className="py-3 px-4 font-bold text-center">Média de Acertos</th>
-                                                    <th className="py-3 px-4 font-bold text-center">Média Geral (%)</th>
+                                                    <th className="py-3 px-4 font-bold text-center cursor-pointer hover:bg-same-tealDark" onClick={() => fEdicao !== 'Todos' ? setOrdemListaEstudantes_AbaEst(ordemListaEstudantes_AbaEst === 'especifico_desc' ? 'especifico_asc' : 'especifico_desc') : setOrdemListaEstudantes_AbaEst(ordemListaEstudantes_AbaEst === 'desc' ? 'asc' : 'desc')}>
+                                                        {fEdicao !== 'Todos' ? `Acertos (${fEdicao}) ↕` : 'Média de Acertos ↕'}
+                                                    </th>
+                                                    <th className="py-3 px-4 font-bold text-center cursor-pointer hover:bg-same-tealDark" onClick={() => setOrdemListaEstudantes_AbaEst(ordemListaEstudantes_AbaEst === 'desc' ? 'asc' : 'desc')}>Média Geral (%) ↕</th>
                                                     <th className="py-3 px-4 font-bold text-center">Ações</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {dadosAgrupadosEstudantes_AbaEst.map((aluno, idx) => {
-                                                    // Novo padrão de cores em quartis de 25%
-                                                    let badgeColor = aluno.mediaPercentual <= 25 ? 'bg-red-500' : aluno.mediaPercentual <= 50 ? 'bg-orange-500' : aluno.mediaPercentual <= 75 ? 'bg-green-500' : 'bg-blue-500';
-                                                    
-                                                    // Cálculo da quantidade média de acertos (Considerando 45 itens por edição)
+                                                    const percentualExibido = fEdicao !== 'Todos' && aluno.percentualEspecifico !== null ? aluno.percentualEspecifico : aluno.mediaPercentual;
+                                                    let badgeColor = percentualExibido <= 25 ? 'bg-red-500' : percentualExibido <= 50 ? 'bg-orange-500' : percentualExibido <= 75 ? 'bg-green-500' : 'bg-blue-500';
                                                     const mediaAcertosQtd = aluno.historicoEdicoes.length > 0 ? (aluno.totalAcertosAcumulados / aluno.historicoEdicoes.length).toFixed(1) : 0;
-
                                                     return (
                                                         <tr key={idx} className="hover:bg-teal-50/20 transition-colors">
                                                             <td className="py-3 px-4 font-bold text-gray-500 text-center">{idx + 1}º</td>
@@ -5190,11 +5203,15 @@
                                                                 </span>
                                                             </td>
                                                             <td className="py-3 px-4 font-black text-gray-800 text-center">
-                                                                {mediaAcertosQtd} <span className="text-xs text-gray-400 font-bold">/ 45</span>
+                                                                {fEdicao !== 'Todos' && aluno.acertosEspecifico !== null ? (
+                                                                    <span>{aluno.acertosEspecifico} <span className="text-xs text-gray-400 font-bold">/ 45</span></span>
+                                                                ) : (
+                                                                    <span>{mediaAcertosQtd} <span className="text-xs text-gray-400 font-bold">/ 45</span></span>
+                                                                )}
                                                             </td>
                                                             <td className="py-3 px-4 text-center">
                                                                 <span className={`${badgeColor} text-white px-2 py-1 rounded font-black text-xs min-w-[60px] inline-block shadow-sm`}>
-                                                                    {aluno.mediaPercentual.toFixed(1)}%
+                                                                    {percentualExibido.toFixed(1)}%
                                                                 </span>
                                                             </td>
                                                             <td className="py-3 px-4 text-center">
